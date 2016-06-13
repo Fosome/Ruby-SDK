@@ -8,8 +8,6 @@ require 'cgi'
 require 'json'
 require 'net/http'
 require 'net/https'
-require 'rubygems'
-require 'uri'
 
 module WePay
 
@@ -30,46 +28,30 @@ module WePay
     # Production UI endpoint
     PRODUCTION_UI_ENDPOINT = "https://www.wepay.com/v2"
 
-    attr_reader :api_endpoint
-    attr_reader :api_version
-    attr_reader :client_id
-    attr_reader :client_secret
-    attr_reader :ui_endpoint
+    attr_reader :client_id,
+                :client_secret,
+                :use_stage,
+                :api_version
 
     def initialize(client_id, client_secret, use_stage = true, api_version = nil)
       @client_id     = client_id.to_s
       @client_secret = client_secret.to_s
+      @use_stage     = !!use_stage
       @api_version   = api_version.to_s
-
-      if use_stage
-        @api_endpoint = STAGE_API_ENDPOINT
-        @ui_endpoint  = STAGE_UI_ENDPOINT
-      else
-        @api_endpoint = PRODUCTION_API_ENDPOINT
-        @ui_endpoint  = PRODUCTION_UI_ENDPOINT
-      end
     end
 
     ##
     # Execute a call to the WePay API.
     ##
-    def call(call, access_token = false, params = {})
-      path = call.start_with?('/') ? call : call.prepend('/')
-      url  = URI.parse(api_endpoint + path)
-
-      call = Net::HTTP::Post.new(url.path, {
-        'Content-Type' => 'application/json',
-        'User-Agent'   => 'WePay Ruby SDK'
-      })
-
-      unless params.empty?
-        call.body = params.to_json
-      end
-
-      if access_token then call.add_field('Authorization', "Bearer #{access_token}"); end
-      if @api_version then call.add_field('Api-Version', @api_version); end
-
-      make_request(call, url)
+    def call(path, access_token = false, params = {})
+      request_class.new(
+        client_id,
+        client_secret,
+        api_version,
+        path,
+        access_token,
+        params
+      ).response
     end
 
     ##
@@ -81,10 +63,10 @@ module WePay
       redirect_uri,
       user_email   = false,
       user_name    = false,
-      permissions  = "manage_accounts,collect_payments,view_user,send_money,preapprove_payments,manage_subscriptions",
+      permissions  = default_oauth_permissions,
       user_country = false
     )
-      url = @ui_endpoint +
+      url = ui_endpoint +
             '/oauth2/authorize?client_id=' + @client_id.to_s +
             '&redirect_uri=' + redirect_uri +
             '&scope=' + permissions
@@ -106,18 +88,51 @@ module WePay
       })
     end
 
-private
+    ##
+    # Support exisiting API
+    #
+    # `WePay::Client#api_endpoint`
+    ##
+    def api_endpoint
+      if use_stage
+        STAGE_API_ENDPOINT
+      else
+        PRODUCTION_API_ENDPOINT
+      end
+    end
 
     ##
-    # Make the HTTP request to the endpoint.
+    # Support exisiting API
+    #
+    # `WePay::Client#ui_endpoint`
     ##
-    def make_request(call, url)
-      request              = Net::HTTP.new(url.host, url.port)
-      request.read_timeout = 30
-      request.use_ssl      = true
+    def ui_endpoint
+      if use_stage
+        STAGE_UI_ENDPOINT
+      else
+        PRODUCTION_UI_ENDPOINT
+      end
+    end
 
-      response = request.start { |http| http.request(call) }
-      JSON.parse(response.body)
+    private
+
+    def request_class
+      if use_stage
+        TestRequest
+      else
+        ProductionRequest
+      end
+    end
+
+    def default_oauth_permissions
+      %w(
+        manage_accounts
+        collect_payments
+        view_user
+        send_money
+        preapprove_payments
+        manage_subscriptions
+      ).join(',')
     end
   end
 end
