@@ -5,9 +5,6 @@
 ##
 
 require 'cgi'
-require 'json'
-require 'net/http'
-require 'net/https'
 
 module WePay
 

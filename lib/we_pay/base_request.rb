@@ -1,7 +1,6 @@
 require 'json'
-require 'net/http'
-require 'net/https'
 require 'uri'
+require 'faraday'
 
 module WePay
   module BaseRequest
@@ -29,36 +28,30 @@ module WePay
     private
 
     def raw_response
-      @raw_response ||= client.start do |c|
-        c.request(request)
-      end
-    end
+      @raw_response ||= client.post do |r|
+        r.url(uri.path)
 
-    def request
-      @request ||= Net::HTTP::Post.new(uri.path, default_headers).tap do |r|
         if params.any?
           r.body = params.to_json
         end
 
         if access_token
-          r.add_field('Authorization', "Bearer #{access_token}")
+          r.headers['Authorization'] = "Bearer #{access_token}"
         end
 
         if api_version
-          r.add_field('Api-Version', @api_version)
+          r.headers['Api-Version'] = api_version
         end
       end
     end
 
     def client
-      @client ||= Net::HTTP.new(uri.host, uri.port).tap do |c|
-        c.read_timeout = 30
-        c.use_ssl      = true
-      end
-    end
-
-    def uri
-      @uri ||= URI.join(api_endpoint, normalized_path)
+      @client ||= Faraday.new(
+        uri,
+        headers: default_headers,
+        request: default_request_opts,
+        ssl:     default_ssl_opts
+      )
     end
 
     def normalized_path
@@ -67,10 +60,26 @@ module WePay
       path.prepend('/')
     end
 
+    def uri
+      URI.parse(api_endpoint + normalized_path)
+    end
+
     def default_headers
       {
-        'Content-Type' => 'application/json',
-        'User-Agent'   => 'WePay Ruby SDK'
+        content_type: 'application/json',
+        user_agent:   'WePay Ruby SDK'
+      }
+    end
+
+    def default_request_opts
+      {
+        timeout: 30
+      }
+    end
+
+    def default_ssl_opts
+      { 
+        verify: true
       }
     end
   end
