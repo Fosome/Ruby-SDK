@@ -3,9 +3,32 @@ require 'spec_helper'
 RSpec.describe WePay::TestRequest do
 
   describe "#response" do
-    let(:http_response) { double("net::http::response") }
-    let(:http_post)     { double("net::http::post") }
-    let(:http_client)   { double("net::http") }
+    let(:client)   { double("faraday::connection") }
+    let(:request)  { double("faraday::request") }
+    let(:response) { double("faraday::response") }
+
+    let(:stage_url) { "https://stage.wepayapi.com/v2" }
+
+    let(:header_opts) do
+      {
+        content_type: 'application/json',
+        user_agent:   'WePay Ruby SDK'
+      }
+    end
+
+    let(:request_opts) do
+      {
+        timeout: 30
+      }
+    end
+
+    let(:ssl_opts) do
+      {
+        verify: true
+      }
+    end
+
+    let(:default_http_adapter) { :net_http }
 
     subject do
       described_class.new(
@@ -19,31 +42,25 @@ RSpec.describe WePay::TestRequest do
     end
 
     before do
-      allow(http_response).to receive(:body).and_return({ response: 'response' }.to_json)
+      allow(Faraday).to receive(:new).with(
+        URI.parse("https://stage.wepayapi.com/v2/path"),
+        headers: header_opts,
+        request: request_opts,
+        ssl:     ssl_opts,
+        adapter: default_http_adapter
+      ).and_return(client)
 
-      allow(Net::HTTP::Post).to receive(:new).with(
-          "/path",
-          'Content-Type' => 'application/json',
-          'User-Agent'   => 'WePay Ruby SDK'
-        ).and_return(http_post)
+      allow(client).to receive(:post).and_yield(request).and_return(response)
 
-      allow(http_post).to receive(:body=).with({ data: 'data' }.to_json)
-      allow(http_post).to receive(:add_field).with('Authorization', "Bearer access_token")
-      allow(http_post).to receive(:add_field).with('Api-Version', "api_version")
+      allow(request).to receive(:url).with("/v2/path")
+      allow(request).to receive(:body=).with({data: 'data'}.to_json)
+      allow(request).to receive(:headers).and_return({})
 
-      allow(Net::HTTP).to receive(:new).with(
-          "stage.wepayapi.com",
-          443
-        ).and_return(http_client)
-
-      allow(http_client).to receive(:read_timeout=).with(30)
-      allow(http_client).to receive(:use_ssl=).with(true)
-      allow(http_client).to receive(:request).with(http_post).and_return(http_response)
-      allow(http_client).to receive(:start).and_yield(http_client)
+      expect(response).to receive(:body).and_return({ status: :ok}.to_json)
     end
 
     it "returns response data" do
-      expect(subject.response).to eq({ 'response' => 'response' })
+      expect(subject.response).to eq('status' => 'ok')
     end
   end
 end

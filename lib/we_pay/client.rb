@@ -1,13 +1,4 @@
-##
-# Copyright (c) 2012-2016 WePay.
-#
-# http://opensource.org/licenses/Apache2.0
-##
-
 require 'cgi'
-require 'json'
-require 'net/http'
-require 'net/https'
 
 module WePay
 
