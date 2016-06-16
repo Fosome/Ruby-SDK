@@ -64,6 +64,27 @@ response = wepay.call('/account/create', access_token, {
 })
 ```
 
+## Configuration
+
+WePay can be configured in a block:
+
+ruby
+```
+WePay.configure do |config|
+  # Switch Faraday web adapter (default Net::HTTP)
+  config.http_adapter = :patron
+end
+```
+
+You can also access the configuration object:
+
+ruby
+```
+config = WePay.configuration
+
+config.http_adapter = :patron
+```
+
 ## Testing
 
 Firstly, run `bundle install` to download and install the dependencies.

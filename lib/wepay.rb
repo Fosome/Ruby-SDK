@@ -17,6 +17,10 @@ module WePay
 
   class << self
 
+    def configure(&block)
+      block.call(configuration)
+    end
+
     def configuration
       WePay::Configuration.instance
     end
