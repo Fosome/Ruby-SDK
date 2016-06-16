@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby
+require 'wepay'
+require 'irb'
+IRB.start

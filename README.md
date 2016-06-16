@@ -74,6 +74,13 @@ You can run the tests as follows:
 make test
 ```
 
+## Console
+
+Start a REPL with the WePay library and dependencies loaded:
+
+```
+bin/console
+```
 
 ## API Reference
 
