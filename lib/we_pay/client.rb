@@ -1,9 +1,3 @@
-##
-# Copyright (c) 2012-2016 WePay.
-#
-# http://opensource.org/licenses/Apache2.0
-##
-
 require 'cgi'
 
 module WePay

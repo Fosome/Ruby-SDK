@@ -50,7 +50,8 @@ module WePay
         uri,
         headers: default_headers,
         request: default_request_opts,
-        ssl:     default_ssl_opts
+        ssl:     default_ssl_opts,
+        adapter: http_adapter
       )
     end
 
@@ -81,6 +82,10 @@ module WePay
       { 
         verify: true
       }
+    end
+
+    def http_adapter
+      WePay.configuration.http_adapter
     end
   end
 end

@@ -28,6 +28,8 @@ RSpec.describe WePay::TestRequest do
       }
     end
 
+    let(:default_http_adapter) { :net_http }
+
     subject do
       described_class.new(
         'client_id',
@@ -44,7 +46,8 @@ RSpec.describe WePay::TestRequest do
         URI.parse("https://stage.wepayapi.com/v2/path"),
         headers: header_opts,
         request: request_opts,
-        ssl:     ssl_opts
+        ssl:     ssl_opts,
+        adapter: default_http_adapter
       ).and_return(client)
 
       allow(client).to receive(:post).and_yield(request).and_return(response)
